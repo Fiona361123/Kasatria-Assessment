@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Kasatria 3D Data Visualization Assignment</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            background-color: #000000;
+            margin: 0;
+            font-family: Helvetica, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Google Login Overlay (Matches Image A) */
+        #login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .login-card {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px;
+        }
+
+        .login-card h2 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .login-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        /* 3D App UI Styles */
+        #app-container {
+            display: none;
+        }
+
+        #info {
+            position: absolute;
+            width: 100%;
+            color: #ffffff;
+            padding: 10px;
+            font-family: Monospace;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 1;
+        }
+
+        #menu {
+            position: absolute;
+            bottom: 25px;
+            width: 100%;
+            text-align: center;
+            z-index: 1;
+        }
+
+        /* Unified Card Styling Matching Image B */
+        .element {
+            width: 130px;
+            height: 170px;
+            box-shadow: 0px 0px 12px rgba(0, 255, 255, 0.4);
+            border: 1px solid rgba(127, 255, 255, 0.25);
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 6px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+
+        .element:hover {
+            box-shadow: 0px 0px 16px rgba(0, 255, 255, 0.85);
+            border: 1px solid rgba(127, 255, 255, 0.85);
+            transform: scale(1.05);
+        }
+
+        .element .number {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: monospace;
+        }
+
+        .element .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-top: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background-color: rgba(255, 255, 255, 0.2);
+            object-fit: cover;
+        }
+
+        .element .symbol {
+            font-size: 22px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+            line-height: 1;
+            margin: 2px 0;
+        }
+
+        .element .name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffffff;
+            line-height: 1.2;
+            max-height: 28px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .element .networth {
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 3px 6px;
+            border-radius: 3px;
+            margin-top: 2px;
+        }
+
+        button {
+            color: rgba(127, 255, 255, 0.75);
+            background: transparent;
+            outline: 1px solid rgba(127, 255, 255, 0.75);
+            border: 0px;
+            padding: 8px 15px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background-color: rgba(0, 255, 255, 0.5);
+            color: #000000;
+        }
+
+        button:active {
+            background-color: rgba(0, 255, 255, 0.75);
+        }
+    </style>
+
+    <!-- Google Identity Services Script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Tween.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+</head>
+
+<body>
+
+    <!-- LOGIN SCREEN OVERLAY (Instruction 2 / Image A) -->
+    <div id="login-overlay">
+        <div class="login-card">
+            <h2>Sign In With Google</h2>
+            <p>Welcome Back</p>
+            <div id="buttonDiv" style="display: flex; justify-content: center;"></div>
+        </div>
+    </div>
+
+    <!-- 3D APPLICATION CONTAINER -->
+    <div id="app-container">
+        <div id="info">Kasatria 3D Data Visualization Assignment</div>
+        <div id="menu">
+            <button id="table">TABLE</button>
+            <button id="sphere">SPHERE</button>
+            <button id="helix">HELIX</button>
+            <button id="grid">GRID</button>
+        </div>
+    </div>
+
+    <!-- ES Module Shims for Three.js CDN imports -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        let camera, scene, renderer;
+        let controls;
+        const objects = [];
+        const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+        function getPeriodicCoordinates(index) {
+            return {
+                x: (index % 20) + 1,
+                y: Math.floor(index / 20) + 1
+            };
+        }
+
+        // 1. Handle Google Login Success Response
+        window.handleCredentialResponse = function (response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+
+            // Hide login overlay and reveal 3D app
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+
+            loadSheetData();
+        };
+
+        // Initialize Google Sign-In button
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: '934647729760-2ge8o6a2l6c2s9d6g61hjirre8jg1nus.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("buttonDiv"),
+                { theme: "outline", size: "large", width: 250 }
+            );
+        };
+
+        // 2. Fetch Google Sheet CSV
+        async function loadSheetData() {
+            try {
+                // Fixed URL (removed the typo 'F' in E62ij)
+                const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbS6xczq1uXYj5YTvgd8no9B517KkWJlW3tHvLX5Ny-mAXNXigFEaR9kKYEfE6F2ijPqxZzZywQIBZ/pub?gid=244115894&single=true&output=csv';
+
+                const response = await fetch(sheetUrl);
+                const csvText = await response.text();
+
+                // Regex CSV line splitter that safely handles commas inside quotes (e.g. "$120,000")
+                const parseRow = (text) => {
+                    const re = /(?!\s*$)\s*(?:'([^'\\]*(?:\\[\S\s][^'\\]*)*)'|"([^"\\]*(?:\\[\S\s][^"\\]*)*)"|([^,'"\s\\/]+))\s*(?:,|$)/g;
+                    const row = [];
+                    text.replace(re, (m0, m1, m2, m3) => {
+                        if (m1 !== undefined) row.push(m1.replace(/\\'/g, "'"));
+                        else if (m2 !== undefined) row.push(m2.replace(/\\"/g, '"'));
+                        else if (m3 !== undefined) row.push(m3);
+                        return '';
+                    });
+                    return row;
+                };
+
+                const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+                if (lines.length <= 1) return;
+
+                // Auto-detect header column positions
+                const headerRow = parseRow(lines[0]).map(h => h.trim().toLowerCase());
+                console.log("CSV Headers Found:", headerRow);
+
+                let netWorthIdx = headerRow.findIndex(h => h.includes('worth') || h.includes('income') || h.includes('salary') || h.includes('amount'));
+                let nameIdx = headerRow.findIndex(h => h.includes('name'));
+                let symbolIdx = headerRow.findIndex(h => h.includes('symbol') || h.includes('id') || h.includes('code'));
+
+                // Fallbacks if header names aren't detected
+                if (netWorthIdx === -1) netWorthIdx = 3;
+                if (nameIdx === -1) nameIdx = 1;
+                if (symbolIdx === -1) symbolIdx = 0;
+
+                const dataset = lines.slice(1).map((line, index) => {
+                    const row = parseRow(line);
+
+                    let rawVal = row[netWorthIdx] || '0';
+                    // Strip any $, commas, or spaces
+                    let netWorth = parseFloat(String(rawVal).replace(/[^0-9.-]+/g, "")) || 0;
+
+                    return {
+                        symbol: row[symbolIdx]?.trim() || `ID${index + 1}`,
+                        name: row[nameIdx]?.trim() || `User ${index + 1}`,
+                        netWorth: netWorth
+                    };
+                });
+
+                console.log("First record parsed:", dataset[0]);
+
+                init(dataset);
+                animate();
+
+            } catch (error) {
+                console.error('Error loading Google Sheet CSV:', error);
+            }
+        }
+
+        function init(dataset) {
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 3000;
+
+            scene = new THREE.Scene();
+
+            const periodicTableSlots = [
+                // Row 1 (H on far left, He on far right)
+                [1, 1], [20, 1],
+                // Row 2
+                [1, 2], [2, 2], [13, 2], [14, 2], [15, 2], [16, 2], [17, 2], [18, 2], [19, 2], [20, 2],
+                // Row 3
+                [1, 3], [2, 3], [13, 3], [14, 3], [15, 3], [16, 3], [17, 3], [18, 3], [19, 3], [20, 3],
+                // Row 4 (Full 20-col row)
+                [1, 4], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [9, 4], [10, 4], [11, 4], [12, 4], [13, 4], [14, 4], [15, 4], [16, 4], [17, 4], [18, 4], [19, 4], [20, 4],
+                // Row 5 (Full 20-col row)
+                [1, 5], [2, 5], [3, 5], [4, 5], [5, 5], [6, 5], [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5], [13, 5], [14, 5], [15, 5], [16, 5], [17, 5], [18, 5], [19, 5], [20, 5],
+                // Row 6
+                [1, 6], [2, 6], [4, 6], [5, 6], [6, 6], [7, 6], [8, 6], [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6], [15, 6], [16, 6], [17, 6], [18, 6], [19, 6], [20, 6],
+                // Row 7
+                [1, 7], [2, 7], [4, 7], [5, 7], [6, 7], [7, 7], [8, 7], [9, 7], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7], [15, 7], [16, 7], [17, 7], [18, 7], [19, 7], [20, 7],
+                // Rows 9 & 10 (Lanthanides / Actinides bottom blocks)
+                [4, 9], [5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9], [18, 9], [19, 9], [20, 9],
+                [4, 10], [5, 10], [6, 10], [7, 10], [8, 10], [9, 10], [10, 10], [11, 10], [12, 10], [13, 10], [14, 10], [15, 10], [16, 10], [17, 10], [18, 10], [19, 10], [20, 10],
+            ];
+
+            for (let i = 0; i < dataset.length; i++) {
+                if (i >= periodicTableSlots.length) break;
+
+                const item = dataset[i];
+
+                const element = document.createElement('div');
+                element.className = 'element';
+
+                // Net Worth Color Coding (Red < $100K, Orange >= $100K, Green > $200K)
+                let bgColor = 'rgba(239, 48, 34, 0.85)'; // #EF3022
+                if (item.netWorth > 200000) {
+                    bgColor = 'rgba(58, 168, 84, 0.85)'; // #3AA854
+                } else if (item.netWorth >= 100000) {
+                    bgColor = 'rgba(243, 156, 18, 0.85)'; // #F39C12
+                }
+                element.style.backgroundColor = bgColor;
+
+                // Index Number
+                const number = document.createElement('div');
+                number.className = 'number';
+                number.textContent = i + 1;
+                element.appendChild(number);
+
+                // Avatar / Profile icon (Image B)
+                const avatar = document.createElement('img');
+                avatar.className = 'avatar';
+                avatar.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(item.name || i)}`;
+                element.appendChild(avatar);
+
+                // Symbol
+                const symbol = document.createElement('div');
+                symbol.className = 'symbol';
+                symbol.textContent = item.symbol;
+                element.appendChild(symbol);
+
+                // Full Name
+                const name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = item.name;
+                element.appendChild(name);
+
+                // Net Worth Formatted
+                const networth = document.createElement('div');
+                networth.className = 'networth';
+                networth.textContent = `$${item.netWorth.toLocaleString()}`;
+                element.appendChild(networth);
+
+                const objectCSS = new CSS3DObject(element);
+                objectCSS.position.x = Math.random() * 4000 - 2000;
+                objectCSS.position.y = Math.random() * 4000 - 2000;
+                objectCSS.position.z = Math.random() * 4000 - 2000;
+                scene.add(objectCSS);
+
+                objects.push(objectCSS);
+
+                // --- 7. TABLE LAYOUT (20 x 10 with Periodic Table Gaps) ---
+
+                let slot;
+                if (i < periodicTableSlots.length) {
+                    slot = periodicTableSlots[i];
+                } else {
+                    // Any extra records go down below Row 10 so they NEVER touch Row 8 or cols 1-3
+                    const extraIndex = i - periodicTableSlots.length;
+                    const col = (extraIndex % 20) + 1;
+                    const row = 12 + Math.floor(extraIndex / 20);
+                    slot = [col, row];
+                }
+
+                const objectTable = new THREE.Object3D();
+                objectTable.position.x = (slot[0] * 135) - 1420;
+                objectTable.position.y = - (slot[1] * 175) + 1000;
+                objectTable.position.z = 0;
+                targets.table.push(objectTable);
+            }
+
+            // --- SPHERE LAYOUT ---
+            const vector = new THREE.Vector3();
+            for (let i = 0; i < objects.length; i++) {
+                const phi = Math.acos(-1 + (2 * i) / objects.length);
+                const theta = Math.sqrt(objects.length * Math.PI) * phi;
+
+                const objectSphere = new THREE.Object3D();
+                objectSphere.position.setFromSphericalCoords(800, phi, theta);
+                vector.copy(objectSphere.position).multiplyScalar(2);
+                objectSphere.lookAt(vector);
+                targets.sphere.push(objectSphere);
+            }
+
+            // --- 8. DOUBLE HELIX LAYOUT ---
+            for (let i = 0; i < objects.length; i++) {
+                const strand = i % 2; // Strand 0 or 1
+                const theta = Math.floor(i / 2) * 0.25 + (strand * Math.PI);
+                const y = - (Math.floor(i / 2) * 16) + 700;
+
+                const objectHelix = new THREE.Object3D();
+                objectHelix.position.setFromCylindricalCoords(900, theta, y);
+
+                vector.x = objectHelix.position.x * 2;
+                vector.y = objectHelix.position.y;
+                vector.z = objectHelix.position.z * 2;
+                objectHelix.lookAt(vector);
+                targets.helix.push(objectHelix);
+            }
+
+            // --- 9. GRID LAYOUT (5 x 4 x 10) ---
+            for (let i = 0; i < objects.length; i++) {
+                const objectGrid = new THREE.Object3D();
+                objectGrid.position.x = ((i % 5) * 400) - 800;
+                objectGrid.position.y = (-(Math.floor(i / 5) % 4) * 400) + 600;
+                objectGrid.position.z = (Math.floor(i / 20)) * -400 + 800;
+                targets.grid.push(objectGrid);
+            }
+
+            // Renderer Setup
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('app-container').appendChild(renderer.domElement);
+
+            // Controls
+            controls = new TrackballControls(camera, renderer.domElement);
+            controls.minDistance = 500;
+            controls.maxDistance = 6000;
+            controls.addEventListener('change', render);
+
+            // Button Event Listeners
+            document.getElementById('table').addEventListener('click', () => transform(targets.table, 2000));
+            document.getElementById('sphere').addEventListener('click', () => transform(targets.sphere, 2000));
+            document.getElementById('helix').addEventListener('click', () => transform(targets.helix, 2000));
+            document.getElementById('grid').addEventListener('click', () => transform(targets.grid, 2000));
+
+            // Default initial view
+            transform(targets.table, 2000);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function transform(target, duration) {
+            TWEEN.removeAll();
+
+            for (let i = 0; i < objects.length; i++) {
+                const object = objects[i];
+                const targetObj = target[i];
+
+                new TWEEN.Tween(object.position)
+                    .to({ x: targetObj.position.x, y: targetObj.position.y, z: targetObj.position.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(object.rotation)
+                    .to({ x: targetObj.rotation.x, y: targetObj.rotation.y, z: targetObj.rotation.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+            }
+
+            new TWEEN.Tween(this)
+                .to({}, duration * 2)
+                .onUpdate(render)
+                .start();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            render();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            controls.update();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+
+</html>
